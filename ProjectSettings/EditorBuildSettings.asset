@@ -4,5 +4,26 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/Concent.unity
+    guid: 2cda990e2423bbf4892e6590ba056729
+  - enabled: 1
+    path: Assets/Scenes/Splash.unity
+    guid: 8b47c4ea2b4812d48af2b99a0587141e
+  - enabled: 1
+    path: Assets/Scenes/MyMainMenu.unity
+    guid: 3959a633bdb1ee34daf364195a80d947
+  - enabled: 1
+    path: Assets/Scenes/Selection.unity
+    guid: ad64e884c3dfe214bb9db0da3c9176af
+  - enabled: 1
+    path: Assets/Scenes/PartyMode.unity
+    guid: 4e707eb879dbb214298ca8e0b1577af7
+  - enabled: 1
+    path: Assets/Scenes/CasualMode.unity
+    guid: 646fb3f9d09dac74cb378720c33edff9
+  - enabled: 1
+    path: Assets/Scenes/ModrenMode.unity
+    guid: b5106914de642854da2e7ba0b859d488
   m_configObjects: {}

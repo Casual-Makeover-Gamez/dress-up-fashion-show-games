@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<dependencies>
+    <androidPackages>
+        <androidPackage spec="com.applovin.mediation:mintegral-adapter:16.6.31.0">
+            <repositories>
+                <repository>https://dl-maven-android.mintegral.com/repository/mbridge_android_sdk_oversea</repository>
+            </repositories>
+        </androidPackage>
+        <androidPackage spec="androidx.recyclerview:recyclerview:1.2.1" />
+    </androidPackages>
+    <iosPods>
+        <iosPod name="AppLovinMediationMintegralAdapter" version="7.5.5.0.0" />
+    </iosPods>
+</dependencies>
