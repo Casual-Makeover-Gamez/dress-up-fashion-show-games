@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -17,26 +16,6 @@ public abstract class MaxSdkBase
     protected static readonly MaxUserSegment SharedUserSegment = new MaxUserSegment();
     protected static readonly MaxTargetingData SharedTargetingData = new MaxTargetingData();
 
-    /// <summary>
-    /// This enum represents the user's geography used to determine the type of consent flow shown to the user.
-    /// </summary>
-    public enum ConsentFlowUserGeography
-    {
-        /// <summary>
-        /// User's geography is unknown.
-        /// </summary>
-        Unknown,
-
-        /// <summary>
-        /// The user is in GDPR region.
-        /// </summary>
-        Gdpr,
-
-        /// <summary>
-        /// The user is in a non-GDPR region.
-        /// </summary>
-        Other
-    }
 
 #if UNITY_EDITOR || UNITY_IPHONE || UNITY_IOS
     /// <summary>
@@ -118,12 +97,6 @@ public abstract class MaxSdkBase
 
         public bool IsTestModeEnabled { get; private set; }
 
-        /// <summary>
-        /// Get the user's geography used to determine the type of consent flow shown to the user.
-        /// If no such determination could be made, <see cref="MaxSdkBase.ConsentFlowUserGeography.Unknown"/> will be returned.
-        /// </summary>
-        public ConsentFlowUserGeography ConsentFlowUserGeography { get; private set; }
-
         [Obsolete("This API has been deprecated and will be removed in a future release.")]
         public ConsentDialogState ConsentDialogState { get; private set; }
 
@@ -153,21 +126,6 @@ public abstract class MaxSdkBase
             sdkConfiguration.IsSuccessfullyInitialized = MaxSdkUtils.GetBoolFromDictionary(eventProps, "isSuccessfullyInitialized");
             sdkConfiguration.CountryCode = MaxSdkUtils.GetStringFromDictionary(eventProps, "countryCode", "");
             sdkConfiguration.IsTestModeEnabled = MaxSdkUtils.GetBoolFromDictionary(eventProps, "isTestModeEnabled");
-
-            var consentFlowUserGeographyStr = MaxSdkUtils.GetStringFromDictionary(eventProps, "consentFlowUserGeography", "");
-            if ("1".Equals(consentFlowUserGeographyStr))
-            {
-                sdkConfiguration.ConsentFlowUserGeography = ConsentFlowUserGeography.Gdpr;
-            }
-            else if ("2".Equals(consentFlowUserGeographyStr))
-            {
-                sdkConfiguration.ConsentFlowUserGeography = ConsentFlowUserGeography.Other;
-            }
-            else
-            {
-                sdkConfiguration.ConsentFlowUserGeography = ConsentFlowUserGeography.Unknown;
-            }
-
 
 #pragma warning disable 0618
             var consentDialogStateStr = MaxSdkUtils.GetStringFromDictionary(eventProps, "consentDialogState", "");
@@ -495,14 +453,6 @@ public abstract class MaxSdkBase
         }
     }
 
-    /// <summary>
-    /// The CMP service, which provides direct APIs for interfacing with the Google-certified CMP installed, if any.
-    /// </summary>
-    public static MaxCmpService CmpService
-    {
-        get { return MaxCmpService.Instance; }
-    }
-
     protected static void ValidateAdUnitIdentifier(string adUnitIdentifier, string debugPurpose)
     {
         if (string.IsNullOrEmpty(adUnitIdentifier))
@@ -571,24 +521,7 @@ public abstract class MaxSdkBase
 
             var eventName = MaxSdkUtils.GetStringFromDictionary(eventProps, "name", "");
             MaxSdkLogger.UserError("Unable to notify ad delegate due to an error in the publisher callback '" + eventName + "' due to exception: " + exception.Message);
-            Debug.LogException(exception);
         }
-    }
-
-    protected static string SerializeLocalExtraParameterValue(object value)
-    {
-        if (!(value.GetType().IsPrimitive || value is string || value is IList || value is IDictionary))
-        {
-            MaxSdkLogger.UserError("Local extra parameters must be an IList, IDictionary, string, or a primitive type");
-            return "";
-        }
-
-        Dictionary<string, object> data = new Dictionary<string, object>
-        {
-            {"value", value}
-        };
-
-        return Json.Serialize(data);
     }
 
     [Obsolete("This API has been deprecated and will be removed in a future release.")]
@@ -688,15 +621,44 @@ internal static class AdPositionExtenstion
 
 namespace AppLovinMax.Internal.API
 {
-    [Obsolete("This class has been deprecated and will be removed in a future SDK release.")]
     public class CFError
     {
+        /// <summary>
+        /// Indicates that the flow ended in an unexpected state.
+        /// </summary>
+        public const int ErrorCodeUnspecified = -1;
+
+        /// <summary>
+        /// Indicates that the consent flow has not been integrated correctly.
+        /// </summary>
+        public const int ErrorCodeInvalidIntegration = -100;
+
+        /// <summary>
+        /// Indicates that the consent flow is already being shown.
+        /// </summary>
+        public const int ErrorCodeFlowAlreadyInProgress = -200;
+
+        /// <summary>
+        /// Indicates that the user is not in a GDPR region.
+        /// </summary>
+        public const int ErrorCodeNotInGdprRegion = -300;
+
+        /// <summary>
+        /// The error code for this error. Will be one of the error codes listed in this file.
+        /// </summary>
         public int Code { get; private set; }
 
+        /// <summary>
+        /// The error message for this error.
+        /// </summary>
         public string Message { get; private set; }
 
-        public static CFError Create(int code = -1, string message = "")
+        public static CFError Create(IDictionary<string, object> errorObject)
         {
+            if (!errorObject.ContainsKey("code") && !errorObject.ContainsKey("message")) return null;
+
+            var code = MaxSdkUtils.GetIntFromDictionary(errorObject, "code", ErrorCodeUnspecified);
+            var message = MaxSdkUtils.GetStringFromDictionary(errorObject, "message");
             return new CFError(code, message);
         }
 
@@ -713,45 +675,97 @@ namespace AppLovinMax.Internal.API
         }
     }
 
-    [Obsolete("This enum has been deprecated. Please use `MaxSdk.GetSdkConfiguration().ConsentFlowUserGeography` instead.")]
     public enum CFType
     {
+        /// <summary>
+        /// The flow type is not known.
+        /// </summary>
         Unknown,
+
+        /// <summary>
+        /// A standard flow where a TOS/PP alert is shown.
+        /// </summary>
         Standard,
+
+        /// <summary>
+        /// A detailed modal shown to users in GDPR region.
+        /// </summary>
         Detailed
     }
 
     public class CFService
     {
-        [Obsolete("This property has been deprecated. Please use `MaxSdk.GetSdkConfiguration().ConsentFlowUserGeography` instead.")]
+        private static Action<CFError> OnConsentFlowCompletedAction;
+
+#if UNITY_EDITOR
+#elif UNITY_ANDROID
+        private static readonly AndroidJavaClass MaxUnityPluginClass = new AndroidJavaClass("com.applovin.mediation.unity.MaxUnityPlugin");
+#elif UNITY_IOS
+        [DllImport("__Internal")]
+        private static extern string _MaxGetCFType();
+
+        [DllImport("__Internal")]
+        private static extern void _MaxStartConsentFlow();
+#endif
+
+        /// <summary>
+        /// The consent flow type that will be displayed.
+        /// </summary>
         public static CFType CFType
         {
             get
             {
-                switch (MaxSdk.GetSdkConfiguration().ConsentFlowUserGeography)
+                var cfType = "0";
+#if UNITY_EDITOR
+#elif UNITY_ANDROID
+                cfType = MaxUnityPluginClass.CallStatic<string>("getCFType");
+#elif UNITY_IOS
+                cfType = _MaxGetCFType();
+#endif
+
+                if ("1".Equals(cfType))
                 {
-                    case MaxSdkBase.ConsentFlowUserGeography.Unknown:
-                        return CFType.Unknown;
-                    case MaxSdkBase.ConsentFlowUserGeography.Gdpr:
-                        return CFType.Detailed;
-                    case MaxSdkBase.ConsentFlowUserGeography.Other:
-                        return CFType.Standard;
-                    default:
-                        throw new ArgumentOutOfRangeException();
+                    return CFType.Standard;
                 }
+                else if ("2".Equals(cfType))
+                {
+                    return CFType.Detailed;
+                }
+
+                return CFType.Unknown;
             }
         }
 
-        [Obsolete("This method has been deprecated. Please use `MaxSdk.CmpService.ShowCmpForExistingUser` instead.")]
+        /// <summary>
+        /// Starts the consent flow. Call this method to re-show the consent flow for a user in GDPR region.
+        ///
+        /// Note: The flow will only be shown to users in GDPR regions.
+        /// </summary>
+        /// <param name="onFlowCompletedAction">Called when we finish showing the consent flow. Error object will be <c>null</c> if the flow completed successfully.</param>
         public static void SCF(Action<CFError> onFlowCompletedAction)
         {
-            MaxSdkBase.CmpService.ShowCmpForExistingUser(error =>
-            {
-                if (onFlowCompletedAction == null) return;
+            OnConsentFlowCompletedAction = onFlowCompletedAction;
 
-                var cfError = error == null ? null : CFError.Create((int) error.Code, error.Message);
-                onFlowCompletedAction(cfError);
-            });
+#if UNITY_EDITOR
+            var errorDict = new Dictionary<string, object>()
+            {
+                {"code", CFError.ErrorCodeUnspecified},
+                {"message", "Consent flow is not supported in Unity Editor."}
+            };
+
+            NotifyConsentFlowCompletedIfNeeded(errorDict);
+#elif UNITY_ANDROID
+            MaxUnityPluginClass.CallStatic("startConsentFlow");
+#elif UNITY_IOS
+            _MaxStartConsentFlow();
+#endif
+        }
+
+        public static void NotifyConsentFlowCompletedIfNeeded(IDictionary<string, object> error)
+        {
+            if (OnConsentFlowCompletedAction == null) return;
+
+            OnConsentFlowCompletedAction(CFError.Create(error));
         }
     }
 }

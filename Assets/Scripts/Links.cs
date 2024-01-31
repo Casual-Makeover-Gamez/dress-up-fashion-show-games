@@ -9,15 +9,15 @@ public class Links : MonoBehaviour
 
     public void MoreGames()
     {
-        Application.OpenURL("https://www.amazon.com/s?i=mobile-apps&rh=p_4%3AFunLab+Studios");
+        Application.OpenURL("https://play.google.com/store/apps/details?id=com.casualmakeovergamez.makeover.dressup.games");
     }
     public void RateUS()
     {
-        Application.OpenURL("http://www.amazon.com/gp/mas/dl/android?p=com.cgsamazon.dressup.fashionshowmakeover.games");
+        Application.OpenURL("https://play.google.com/store/apps/details?id=com.casualmakeovergamez.dressupfashion.games");
     }
     public void PP()
     {
-        Application.OpenURL("https://docs.google.com/document/d/1-dUBBPWGQ31tI9QTQtgfaf5-02KP75ZB8lky39VsUCo/edit");
+        Application.OpenURL("https://sites.google.com/view/casual-makeover-gamez");
     }
 
 }

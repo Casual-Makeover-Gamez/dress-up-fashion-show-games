@@ -1,5 +1,12 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine.Advertisements;
+using GoogleMobileAds;
+using GoogleMobileAds.Api;
+using UnityEngine;
 using System;
+using GoogleMobileAds.Common;
+using UnityEngine.Events;
 
 [System.Serializable]
 public enum AdsType
@@ -14,6 +21,14 @@ public class MyAdsManager : MonoBehaviour
     public event actionRewardedCompleted onRewardedVideoAdCompletedEvent;
     public static MyAdsManager instance;
     public AdsType adsType;
+    [Header("Admob Ids")]
+    public AdPosition AdmobBannerPosition = AdPosition.Top;
+    public string AdmobAppId;
+    public string AdmobBannerId;
+    public string AdmobInterstitialID;
+    public string AdmobRVId;
+    public string AdmobNativeId;
+    public string AdmobAppOpenId;
     [Header("Applovin Ids")]
     public MaxSdkBase.BannerPosition applovinBannerPosition = MaxSdkBase.BannerPosition.TopCenter;
     public string MaxSdkKey = "Eii0lqMx5nRJ9H7FwV1aH1IBsJUXdDcK0LJqId0ZIkWxH3GzgCu7ZmaLbW_VUqO5aovzq_TqzUaJcwOw6zr2hc";
@@ -23,11 +38,30 @@ public class MyAdsManager : MonoBehaviour
     public string RewardedInterstitialAdUnitId = "ENTER_REWARD_INTER_AD_UNIT_ID_HERE";
     public string MRecAdUnitId = "ENTER_MREC_AD_UNIT_ID_HERE";
     public bool isDebugLog = false;
+    private bool isAdmobBannerLoaded, isNativeLoaded;
     private bool isBannerShowing;
     private bool isMRecShowing;
+    private bool isAdmobInitialized;
+    private AppOpenAd appOpenAd;
+    private BannerView bannerView;
+    private InterstitialAd interstitialAd;
+    private RewardedAd rewardedAd;
+    private RewardedInterstitialAd rewardedInterstitialAd;
+
+    public UnityEvent OnBannerAdLoadEvent;
+    public UnityEvent OnBannerAdFailToLoadEvent;
+    public UnityEvent OnAdmobInterstitialLoadedEvent;
+    public UnityEvent OnAdmobInterstitialClosedEvent;
+    public UnityEvent OnRewardedLoadedEvent;
+    public UnityEvent OnUserEarnedRewardEvent;
+    public UnityEvent OnRewardedClosedEvent;
+    private bool isAdmobRewardedAvailable = false;
+    private bool isAdmobInterstitialAvailable = false;
+    private bool isShowingAppOpenAd, isAppOpenAdAvailable;
     private int interstitialRetryAttempt;
     private int rewardedRetryAttempt;
     private int rewardedInterstitialRetryAttempt;
+    private int bannerRetryCount;
     private Action rewardedAction;
 
 
@@ -68,6 +102,11 @@ public class MyAdsManager : MonoBehaviour
         if (adsType == AdsType.TestAds)
         {
 #if UNITY_EDITOR || UNITY_ANDROID
+            AdmobAppId = "ca-app-pub-3940256099942544~3347511713";
+            AdmobBannerId = "ca-app-pub-3940256099942544/6300978111";
+            AdmobInterstitialID = "ca-app-pub-3940256099942544/1033173712";
+            AdmobRVId = "ca-app-pub-3940256099942544/5224354917";
+            AdmobNativeId = "ca-app-pub-3940256099942544/2247696110";
             //MaxSdkKey = "ENTER_MAX_SDK_KEY_HERE";
             InterstitialAdUnitId = "ENTER_INTERSTITIAL_AD_UNIT_ID_HERE";
             RewardedAdUnitId = "ENTER_REWARD_AD_UNIT_ID_HERE";
@@ -87,11 +126,213 @@ public class MyAdsManager : MonoBehaviour
             InitializeApplovinInterstitial();
             InitializeApplovinRewarded();
             InitializeApplovinBanner();
-            ShowApplovinBanner();
         };
         MaxSdk.SetSdkKey(MaxSdkKey);
         MaxSdk.SetUserId("USER_ID");
         MaxSdk.InitializeSdk();
+        MobileAds.SetiOSAppPauseOnBackground(true);
+        //// Initialize the Google Mobile Ads SDK.
+        MobileAds.Initialize(HandleInitCompleteAction);
+    }
+    #endregion
+
+    #region Admob HandleInitCompleteAction
+    private void HandleInitCompleteAction(InitializationStatus initstatus)
+    {
+        // Callbacks from GoogleMobileAds are not guaranteed to be called on
+        // main thread.
+        // In this example we use MobileAdsEventExecutor to schedule these calls on
+        // the next Update() loop.
+        MobileAdsEventExecutor.ExecuteInUpdate(() =>
+        {
+            isAdmobInitialized = true;
+            RequestInterstitialAds();
+            InitializeRewardedAd();
+            RequestBannerView();
+        });
+    }
+    #endregion
+
+    #region Admob Banner
+    public void RequestBannerView()
+    {
+        if (!isAdmobInitialized) return;
+        // Clean up banner before reusing
+        if (bannerView != null)
+        {
+            bannerView.Destroy();
+        }
+        //AdSize adaptiveSize = AdSize.GetCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(AdSize.FullWidth);
+        // Create a 320x50 banner at top of the screen
+        bannerView = new BannerView(AdmobBannerId, AdSize.Banner, AdmobBannerPosition);
+        // Called when an ad request has successfully loaded.
+        bannerView.OnAdLoaded += (sender, args) => OnBannerAdLoadEvent.Invoke();
+        bannerView.OnAdFailedToLoad += (sender, args) => OnBannerAdFailToLoadEvent.Invoke();
+        // Load a banner ad
+        bannerView.LoadAd(CreateAdRequest());
+    }
+    public void OnAdmobBannerAdLoaded()
+    {
+        isAdmobBannerLoaded = true;
+    }
+    public void OnAdmobBannerAdFailToLoad()
+    {
+        bannerRetryCount++;
+        isAdmobBannerLoaded = false;
+        if (bannerRetryCount < 3)
+        {
+            RequestBannerView();
+        }
+        else
+        {
+            ShowApplovinBanner();
+        }
+    }
+    public void DestroyBannerAd()
+    {
+        if (bannerView != null)
+        {
+            bannerView.Destroy();
+        }
+    }
+    #endregion
+
+    #region Admob Interstitial
+    private void RequestInterstitialAds()
+    {
+        if (!isAdmobInitialized) return;
+        isAdmobInterstitialAvailable = false;
+        // Clean up interstitial before using it
+        if (interstitialAd != null)
+        {
+            interstitialAd.Destroy();
+        }
+        interstitialAd = new InterstitialAd(AdmobInterstitialID);
+        // Add Event Handlers
+        interstitialAd.OnAdLoaded += (sender, args) => OnAdmobInterstitialLoadedEvent.Invoke();
+        //interstitialAd.OnAdFailedToLoad += (sender, args) => OnAdFailedToLoadEvent.Invoke();
+        //interstitialAd.OnAdOpening += (sender, args) => OnAdOpeningEvent.Invoke();
+        interstitialAd.OnAdClosed += (sender, args) => OnAdmobInterstitialClosedEvent.Invoke();
+        // Load an interstitial ad
+        interstitialAd.LoadAd(CreateAdRequest());
+    }
+    public void OnInterstitialLoaded()
+    {
+        isAdmobInterstitialAvailable = true;
+    }
+    public void OnInterstitialClosed()
+    {
+        isAdmobInterstitialAvailable = false;
+        RequestInterstitialAds();
+        AudioListener.pause = false;
+        AudioListener.volume = 1;
+    }
+    #endregion
+
+    #region Admob RewaredVideo
+    public void InitializeRewardedAd()
+    {
+        if (!isAdmobInitialized) return;
+        isAdmobRewardedAvailable = false;
+        // create new rewarded ad instance
+        rewardedAd = new RewardedAd(AdmobRVId);
+        // Add Event Handlers
+        rewardedAd.OnAdLoaded += (sender, args) => OnRewardedLoadedEvent.Invoke();
+        //rewardedAd.OnAdFailedToLoad += (sender, args) => OnAdFailedToLoadEvent.Invoke();
+        //rewardedAd.OnAdOpening += (sender, args) => OnAdOpeningEvent.Invoke();
+        //rewardedAd.OnAdFailedToShow += (sender, args) => OnAdFailedToShowEvent.Invoke();
+        rewardedAd.OnAdClosed += (sender, args) => OnRewardedClosedEvent.Invoke();
+        rewardedAd.OnUserEarnedReward += (sender, args) => OnUserEarnedRewardEvent.Invoke();
+
+        // Create empty ad request
+        RequestRewardedAd();
+    }
+    public void RequestRewardedAd()
+    {
+        if (!isAdmobInitialized) return;
+        isAdmobRewardedAvailable = false;
+        rewardedAd.LoadAd(CreateAdRequest());
+    }
+    public void OnRewardedLoaded()
+    {
+        isAdmobRewardedAvailable = true;
+    }
+    public void OnRewardEarned()
+    {
+        Invoke("GiveReward", 0.5f);
+    }
+    public void OnRewardClosed()
+    {
+        Invoke("RequestRewardedAd", 1f);
+        AudioListener.pause = false;
+        AudioListener.volume = 1;
+#if UNITY_EDITOR
+        OnRewardEarned();
+#endif
+    }
+    #endregion
+
+    #region Admob App Open Ad
+    public void LoadAppOpenAd()
+    {
+        AdRequest request = CreateAdRequest();
+        // Load an app open ad for portrait orientation
+        AppOpenAd.LoadAd(AdmobAppOpenId, ScreenOrientation.Portrait, request, ((appOpenAd, error) =>
+        {
+            if (error != null)
+            {
+                // Handle the error.
+                Debug.LogFormat("Failed to load the ad. (reason: {0})", error.LoadAdError.GetMessage());
+                return;
+            }
+
+            // App open ad is loaded.
+            this.appOpenAd = appOpenAd;
+        }));
+    }
+    public void ShowAppOpenAdIfAvailable()
+    {
+        Debug.Log("<color=#ffc62b><b>Show app open enter. </b></color>");
+        if (!isAppOpenAdAvailable || isShowingAppOpenAd)
+        {
+            return;
+        }
+        appOpenAd.OnAdDidDismissFullScreenContent += HandleAdDidDismissFullScreenContent;
+        appOpenAd.OnAdFailedToPresentFullScreenContent += HandleAdFailedToPresentFullScreenContent;
+        appOpenAd.OnAdDidPresentFullScreenContent += HandleAdDidPresentFullScreenContent;
+        appOpenAd.OnAdDidRecordImpression += HandleAdDidRecordImpression;
+        appOpenAd.OnPaidEvent += HandlePaidEvent;
+        Debug.Log("<color=#ffc62b><b>App Open Showed. </b></color>");
+        appOpenAd.Show();
+    }
+    private void HandleAdDidDismissFullScreenContent(object sender, EventArgs args)
+    {
+        Debug.Log("Closed app open ad");
+        // Set the ad to null to indicate that AppOpenAdManager no longer has another ad to show.
+        appOpenAd = null;
+        isShowingAppOpenAd = false;
+        LoadAppOpenAd();
+    }
+    private void HandleAdFailedToPresentFullScreenContent(object sender, AdErrorEventArgs args)
+    {
+        Debug.LogFormat("Failed to present the ad (reason: {0})", args.AdError.GetMessage());
+        // Set the ad to null to indicate that AppOpenAdManager no longer has another ad to show.
+        appOpenAd = null;
+        LoadAppOpenAd();
+    }
+    private void HandleAdDidPresentFullScreenContent(object sender, EventArgs args)
+    {
+        Debug.Log("Displayed app open ad");
+        isShowingAppOpenAd = true;
+    }
+    private void HandleAdDidRecordImpression(object sender, EventArgs args)
+    {
+        Debug.Log("Recorded ad impression");
+    }
+    private void HandlePaidEvent(object sender, AdValueEventArgs args)
+    {
+        Debug.LogFormat("Received paid event. (currency: {0}, value: {1}",
+                args.AdValue.CurrencyCode, args.AdValue.Value);
     }
     #endregion
 
@@ -107,12 +348,12 @@ public class MyAdsManager : MonoBehaviour
         // You may use the utility method `MaxSdkUtils.isTablet()` to help with view sizing adjustments.
         MaxSdk.CreateBanner(BannerAdUnitId, applovinBannerPosition);
         // Set background or background color for banners to be fully functional.
-        Color color = new Color(0, 0, 0, 0.1f);
+        Color color = new Color(0, 0, 0, 15);
         MaxSdk.SetBannerBackgroundColor(BannerAdUnitId, color);
     }
     public void ShowApplovinBanner()
     {
-        if (!isBannerShowing)
+        if (!isAdmobBannerLoaded && !isBannerShowing)
         {
             isBannerShowing = !isBannerShowing;
             MaxSdk.ShowBanner(BannerAdUnitId);
@@ -120,7 +361,7 @@ public class MyAdsManager : MonoBehaviour
     }
     public void HideApplovinBanner()
     {
-        if (isBannerShowing)
+        if (!isAdmobBannerLoaded && isBannerShowing)
         {
             isBannerShowing = !isBannerShowing;
             MaxSdk.HideBanner(BannerAdUnitId);
@@ -496,40 +737,108 @@ public class MyAdsManager : MonoBehaviour
     #region ShowBanners
     public void ShowBanner()
     {
-        ShowApplovinBanner();
+        if (bannerView != null && isAdmobBannerLoaded)
+        {
+            bannerView.Show();
+        }
+        else
+        {
+            ShowApplovinBanner();
+        }
     }
     #endregion
 
     #region HideBanners
     public void HideBanner()
     {
-        HideApplovinBanner();
+        if (bannerView != null && isAdmobBannerLoaded)
+        {
+            bannerView.Hide();
+        }
+        else
+        {
+            HideApplovinBanner();
+        }
     }
     #endregion
 
     #region ShowInterstitialAds
     public bool IsInterstitialAvailable()
     {
-        return MaxSdk.IsInterstitialReady(InterstitialAdUnitId);
+        return isAdmobInterstitialAvailable || MaxSdk.IsInterstitialReady(InterstitialAdUnitId);
     }
     public void ShowInterstitialAds()
     {
-        ShowApplovinInterstitial();
+        if (interstitialAd !=null && isAdmobInterstitialAvailable)
+        {
+            AudioListener.pause = true;
+            AudioListener.volume = 0;
+            interstitialAd.Show();
+        }
+        else
+        {
+            ShowApplovinInterstitial();
+            RequestInterstitialAds();
+        }
     }
     #endregion
 
     #region ShowRewardedVideos
     public bool IsRewardedAvailable()
     {
-        return MaxSdk.IsRewardedAdReady(RewardedAdUnitId);
+        return isAdmobRewardedAvailable || MaxSdk.IsRewardedAdReady(RewardedAdUnitId);
     }
     public void ShowRewardedVideos()
     {
-        ShowApplovinRewarded();
+        if (rewardedAd != null && isAdmobRewardedAvailable)
+        {
+            AudioListener.pause = true;
+            AudioListener.volume = 0;
+            rewardedAd.Show();
+        }
+        else
+        {
+            ShowApplovinRewarded();
+            RequestRewardedAd();
+        }
     }
     public void ShowRewardedVideos(Action actionToCall = null)
     {
-        ShowApplovinRewarded();
+        if (rewardedAd != null && isAdmobRewardedAvailable)
+        {
+            rewardedAction = actionToCall;
+            AudioListener.pause = true;
+            AudioListener.volume = 0;
+            rewardedAd.Show();
+        }
+        else
+        {
+            ShowApplovinRewarded();
+            RequestRewardedAd();
+        }
+    }
+    #endregion
+
+    #region HELPER METHODS
+    private AdRequest CreateAdRequest()
+    {
+        if (adsType == AdsType.TestAds)
+        {
+            return new AdRequest.Builder().AddKeyword("unity-admob-sample").Build();
+        }
+        else
+        {
+            return new AdRequest.Builder().Build();
+        }
+    }
+
+    public void OnApplicationPause(bool paused)
+    {
+        //// Display the app open ad when the app is foregrounded.
+        //if (!paused)
+        //{
+        //    ShowAppOpenAd();
+        //}
     }
     #endregion
 

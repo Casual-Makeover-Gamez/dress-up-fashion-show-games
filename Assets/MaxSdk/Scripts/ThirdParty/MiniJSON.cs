@@ -85,7 +85,7 @@ namespace AppLovinMax.ThirdParty.MiniJson
         public static object Deserialize(string json)
         {
             // save the string for debug information
-            if (string.IsNullOrEmpty(json))
+            if (json == null)
             {
                 return null;
             }

@@ -27,7 +27,6 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
@@ -44,12 +43,117 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 393052d8b8d320a4591f31d6fc666ce7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  adsType: 1
+  adsType: 0
+  AdmobBannerPosition: 0
+  AdmobAppId: 
+  AdmobBannerId: 
+  AdmobInterstitialID: 
+  AdmobRVId: 
+  AdmobNativeId: 
+  AdmobAppOpenId: 
   applovinBannerPosition: 1
-  MaxSdkKey: mxgwSQtlJJ_auom_f8f8b9F0gGangMbTEK5sL8CFM3eVedrTKlwrQ82buZ8QAv_y6pTRaKohOubewMZ4c0rBwO
-  BannerAdUnitId: c9db0646fe42bb6e
-  InterstitialAdUnitId: 2af65317dc4ce3e7
-  RewardedAdUnitId: 90d6d2dae1e0361e
+  MaxSdkKey: Eii0lqMx5nRJ9H7FwV1aH1IBsJUXdDcK0LJqId0ZIkWxH3GzgCu7ZmaLbW_VUqO5aovzq_TqzUaJcwOw6zr2hc
+  BannerAdUnitId: ENTER_BANNER_AD_UNIT_ID_HERE
+  InterstitialAdUnitId: ENTER_INTERSTITIAL_AD_UNIT_ID_HERE
+  RewardedAdUnitId: ENTER_REWARD_AD_UNIT_ID_HERE
   RewardedInterstitialAdUnitId: ENTER_REWARD_INTER_AD_UNIT_ID_HERE
   MRecAdUnitId: ENTER_MREC_AD_UNIT_ID_HERE
   isDebugLog: 0
+  OnBannerAdLoadEvent:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1826572841646777255}
+        m_MethodName: OnAdmobBannerAdLoaded
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  OnBannerAdFailToLoadEvent:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1826572841646777255}
+        m_MethodName: OnAdmobBannerAdFailToLoad
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  OnAdmobInterstitialLoadedEvent:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1826572841646777255}
+        m_MethodName: OnInterstitialLoaded
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  OnAdmobInterstitialClosedEvent:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1826572841646777255}
+        m_MethodName: OnInterstitialClosed
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  OnRewardedLoadedEvent:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1826572841646777255}
+        m_MethodName: OnRewardedLoaded
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  OnUserEarnedRewardEvent:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1826572841646777255}
+        m_MethodName: OnRewardEarned
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  OnRewardedClosedEvent:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1826572841646777255}
+        m_MethodName: OnRewardClosed
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2

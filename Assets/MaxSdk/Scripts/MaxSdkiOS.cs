@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using AOT;
@@ -19,6 +18,11 @@ public class MaxSdkiOS : MaxSdkBase
     }
 
 #if UNITY_IOS
+    public static MaxVariableServiceiOS VariableService
+    {
+        get { return MaxVariableServiceiOS.Instance; }
+    }
+
     public static MaxUserServiceiOS UserService
     {
         get { return MaxUserServiceiOS.Instance; }
@@ -503,28 +507,24 @@ public class MaxSdkiOS : MaxSdkBase
     [DllImport("__Internal")]
     private static extern void _MaxSetBannerLocalExtraParameter(string adUnitIdentifier, string key, IntPtr value);
 
-    [DllImport("__Internal")]
-    private static extern void _MaxSetBannerLocalExtraParameterJSON(string adUnitIdentifier, string key, string json);
-
     /// <summary>
     /// Set a local extra parameter for the banner ad.
     /// </summary>
     /// <param name="adUnitIdentifier">Ad unit identifier of the banner to set the local extra parameter for.</param>
     /// <param name="key">The key for the local extra parameter.</param>
-    /// <param name="value">The value for the local extra parameter. Accepts the following types: <see cref="IntPtr"/>, <c>null</c>, <c>IList</c>, <c>IDictionary</c>, <c>string</c>, primitive types</param>
+    /// <param name="value">The value for the local extra parameter. Needs to be of type <see cref="IntPtr"/> or <c>null</c></param>
     public static void SetBannerLocalExtraParameter(string adUnitIdentifier, string key, object value)
     {
+        if (value != null && value.GetType() != typeof(IntPtr))
+        {
+            MaxSdkLogger.E("Failed to set local extra parameter. iOS local extra parameters need to be of type IntPtr");
+            return;
+        }
+
         ValidateAdUnitIdentifier(adUnitIdentifier, "set banner local extra parameter");
 
-        if (value == null || value is IntPtr)
-        {
-            var intPtrValue = value == null ? IntPtr.Zero : (IntPtr) value;
-            _MaxSetBannerLocalExtraParameter(adUnitIdentifier, key, intPtrValue);
-        }
-        else
-        {
-            _MaxSetBannerLocalExtraParameterJSON(adUnitIdentifier, key, SerializeLocalExtraParameterValue(value));
-        }
+        var intPtrValue = value == null ? IntPtr.Zero : (IntPtr) value;
+        _MaxSetBannerLocalExtraParameter(adUnitIdentifier, key, intPtrValue);
     }
 
     [DllImport("__Internal")]
@@ -737,28 +737,24 @@ public class MaxSdkiOS : MaxSdkBase
     [DllImport("__Internal")]
     private static extern void _MaxSetMRecLocalExtraParameter(string adUnitIdentifier, string key, IntPtr value);
 
-    [DllImport("__Internal")]
-    private static extern void _MaxSetMRecLocalExtraParameterJSON(string adUnitIdentifier, string key, string json);
-
     /// <summary>
     /// Set a local extra parameter for the MREC ad.
     /// </summary>
     /// <param name="adUnitIdentifier">Ad unit identifier of the MREC to set the local extra parameter for.</param>
     /// <param name="key">The key for the local extra parameter.</param>
-    /// <param name="value">The value for the local extra parameter. Accepts the following types: <see cref="IntPtr"/>, <c>null</c>, <c>IList</c>, <c>IDictionary</c>, <c>string</c>, primitive types</param>
+    /// <param name="value">The value for the local extra parameter. Needs to be of type <see cref="IntPtr"/> or <c>null</c></param>
     public static void SetMRecLocalExtraParameter(string adUnitIdentifier, string key, object value)
     {
+        if (value != null && value.GetType() != typeof(IntPtr))
+        {
+            MaxSdkLogger.E("Failed to set local extra parameter. iOS local extra parameters need to be of type IntPtr");
+            return;
+        }
+
         ValidateAdUnitIdentifier(adUnitIdentifier, "set MREC local extra parameter");
 
-        if (value == null || value is IntPtr)
-        {
-            var intPtrValue = value == null ? IntPtr.Zero : (IntPtr) value;
-            _MaxSetMRecLocalExtraParameter(adUnitIdentifier, key, intPtrValue);
-        }
-        else
-        {
-            _MaxSetMRecLocalExtraParameterJSON(adUnitIdentifier, key, SerializeLocalExtraParameterValue(value));
-        }
+        var intPtrValue = value == null ? IntPtr.Zero : (IntPtr) value;
+        _MaxSetMRecLocalExtraParameter(adUnitIdentifier, key, intPtrValue);
     }
 
     [DllImport("__Internal")]
@@ -978,28 +974,24 @@ public class MaxSdkiOS : MaxSdkBase
     [DllImport("__Internal")]
     private static extern void _MaxSetInterstitialLocalExtraParameter(string adUnitIdentifier, string key, IntPtr value);
 
-    [DllImport("__Internal")]
-    private static extern void _MaxSetInterstitialLocalExtraParameterJSON(string adUnitIdentifier, string key, string json);
-
     /// <summary>
     /// Set a local extra parameter for the ad.
     /// </summary>
     /// <param name="adUnitIdentifier">Ad unit identifier of the interstitial to set the local extra parameter for.</param>
     /// <param name="key">The key for the local extra parameter.</param>
-    /// <param name="value">The value for the local extra parameter. Accepts the following types: <see cref="IntPtr"/>, <c>null</c>, <c>IList</c>, <c>IDictionary</c>, <c>string</c>, primitive types</param>
+    /// <param name="value">The value for the local extra parameter. Needs to be of type <see cref="IntPtr"/> or <c>null</c></param>
     public static void SetInterstitialLocalExtraParameter(string adUnitIdentifier, string key, object value)
     {
+        if (value != null && value.GetType() != typeof(IntPtr))
+        {
+            MaxSdkLogger.E("Failed to set local extra parameter. iOS local extra parameters need to be of type IntPtr");
+            return;
+        }
+
         ValidateAdUnitIdentifier(adUnitIdentifier, "set interstitial local extra parameter");
 
-        if (value == null || value is IntPtr)
-        {
-            var intPtrValue = value == null ? IntPtr.Zero : (IntPtr) value;
-            _MaxSetInterstitialLocalExtraParameter(adUnitIdentifier, key, intPtrValue);
-        }
-        else
-        {
-            _MaxSetInterstitialLocalExtraParameterJSON(adUnitIdentifier, key, SerializeLocalExtraParameterValue(value));
-        }
+        var intPtrValue = value == null ? IntPtr.Zero : (IntPtr) value;
+        _MaxSetInterstitialLocalExtraParameter(adUnitIdentifier, key, intPtrValue);
     }
 
     #endregion
@@ -1074,28 +1066,24 @@ public class MaxSdkiOS : MaxSdkBase
     [DllImport("__Internal")]
     private static extern void _MaxSetAppOpenAdLocalExtraParameter(string adUnitIdentifier, string key, IntPtr value);
 
-    [DllImport("__Internal")]
-    private static extern void _MaxSetAppOpenAdLocalExtraParameterJSON(string adUnitIdentifier, string key, string json);
-
     /// <summary>
     /// Set a local extra parameter for the ad.
     /// </summary>
     /// <param name="adUnitIdentifier">Ad unit identifier of the app open ad to set the local extra parameter for.</param>
     /// <param name="key">The key for the local extra parameter.</param>
-    /// <param name="value">The value for the local extra parameter. Accepts the following types: <see cref="IntPtr"/>, <c>null</c>, <c>IList</c>, <c>IDictionary</c>, <c>string</c>, primitive types</param>
+    /// <param name="value">The value for the local extra parameter. Needs to be of type <see cref="IntPtr"/> or <c>null</c></param>
     public static void SetAppOpenAdLocalExtraParameter(string adUnitIdentifier, string key, object value)
     {
+        if (value != null && value.GetType() != typeof(IntPtr))
+        {
+            MaxSdkLogger.E("Failed to set local extra parameter. iOS local extra parameters need to be of type IntPtr");
+            return;
+        }
+
         ValidateAdUnitIdentifier(adUnitIdentifier, "set app open ad local extra parameter");
 
-        if (value == null || value is IntPtr)
-        {
-            var intPtrValue = value == null ? IntPtr.Zero : (IntPtr) value;
-            _MaxSetAppOpenAdLocalExtraParameter(adUnitIdentifier, key, intPtrValue);
-        }
-        else
-        {
-            _MaxSetAppOpenAdLocalExtraParameterJSON(adUnitIdentifier, key, SerializeLocalExtraParameterValue(value));
-        }
+        var intPtrValue = value == null ? IntPtr.Zero : (IntPtr) value;
+        _MaxSetAppOpenAdLocalExtraParameter(adUnitIdentifier, key, intPtrValue);
     }
 
     #endregion
@@ -1170,28 +1158,24 @@ public class MaxSdkiOS : MaxSdkBase
     [DllImport("__Internal")]
     private static extern void _MaxSetRewardedAdLocalExtraParameter(string adUnitIdentifier, string key, IntPtr value);
 
-    [DllImport("__Internal")]
-    private static extern void _MaxSetRewardedAdLocalExtraParameterJSON(string adUnitIdentifier, string key, string json);
-
     /// <summary>
     /// Set a local extra parameter for the ad.
     /// </summary>
     /// <param name="adUnitIdentifier">Ad unit identifier of the rewarded ad to set the local extra parameter for.</param>
     /// <param name="key">The key for the local extra parameter.</param>
-    /// <param name="value">The value for the local extra parameter. Accepts the following types: <see cref="IntPtr"/>, <c>null</c>, <c>IList</c>, <c>IDictionary</c>, <c>string</c>, primitive types</param>
+    /// <param name="value">The value for local the extra parameter. Needs to be of type <see cref="IntPtr"/> or <c>null</c></param>
     public static void SetRewardedAdLocalExtraParameter(string adUnitIdentifier, string key, object value)
     {
-        ValidateAdUnitIdentifier(adUnitIdentifier, "set rewarded ad local extra parameter");
+        if (value != null && value.GetType() != typeof(IntPtr))
+        {
+            MaxSdkLogger.E("Failed to set local extra parameter. iOS local extra parameters need to be of type IntPtr");
+            return;
+        }
 
-        if (value == null || value is IntPtr)
-        {
-            var intPtrValue = value == null ? IntPtr.Zero : (IntPtr) value;
-            _MaxSetRewardedAdLocalExtraParameter(adUnitIdentifier, key, intPtrValue);
-        }
-        else
-        {
-            _MaxSetRewardedAdLocalExtraParameterJSON(adUnitIdentifier, key, SerializeLocalExtraParameterValue(value));
-        }
+        ValidateAdUnitIdentifier(adUnitIdentifier, "set rewarded local extra parameter");
+
+        var intPtrValue = value == null ? IntPtr.Zero : (IntPtr) value;
+        _MaxSetRewardedAdLocalExtraParameter(adUnitIdentifier, key, intPtrValue);
     }
 
     #endregion
@@ -1266,28 +1250,24 @@ public class MaxSdkiOS : MaxSdkBase
     [DllImport("__Internal")]
     private static extern void _MaxSetRewardedInterstitialAdLocalExtraParameter(string adUnitIdentifier, string key, IntPtr value);
 
-    [DllImport("__Internal")]
-    private static extern void _MaxSetRewardedInterstitialAdLocalExtraParameterJSON(string adUnitIdentifier, string key, string json);
-
     /// <summary>
     /// Set a local extra parameter for the ad.
     /// </summary>
     /// <param name="adUnitIdentifier">Ad unit identifier of the rewarded interstitial ad to set the local extra parameter for.</param>
     /// <param name="key">The key for the local extra parameter.</param>
-    /// <param name="value">The value for the local extra parameter. Accepts the following types: <see cref="IntPtr"/>, <c>null</c>, <c>IList</c>, <c>IDictionary</c>, <c>string</c>, primitive types</param>
+    /// <param name="value">The value for the local extra parameter. Needs to be of type <see cref="IntPtr"/> or <c>null</c></param>
     public static void SetRewardedInterstitialAdLocalExtraParameter(string adUnitIdentifier, string key, object value)
     {
-        ValidateAdUnitIdentifier(adUnitIdentifier, "set rewarded interstitial ad local extra parameter");
+        if (value != null && value.GetType() != typeof(IntPtr))
+        {
+            MaxSdkLogger.E("Failed to set local extra parameter. iOS local extra parameters need to be of type IntPtr");
+            return;
+        }
 
-        if (value == null || value is IntPtr)
-        {
-            var intPtrValue = value == null ? IntPtr.Zero : (IntPtr) value;
-            _MaxSetRewardedInterstitialAdLocalExtraParameter(adUnitIdentifier, key, intPtrValue);
-        }
-        else
-        {
-            _MaxSetRewardedInterstitialAdLocalExtraParameterJSON(adUnitIdentifier, key, SerializeLocalExtraParameterValue(value));
-        }
+        ValidateAdUnitIdentifier(adUnitIdentifier, "set rewarded interstitial local extra parameter");
+
+        var intPtrValue = value == null ? IntPtr.Zero : (IntPtr) value;
+        _MaxSetRewardedInterstitialAdLocalExtraParameter(adUnitIdentifier, key, intPtrValue);
     }
 
     #endregion

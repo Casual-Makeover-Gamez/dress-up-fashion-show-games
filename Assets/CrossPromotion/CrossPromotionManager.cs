@@ -58,7 +58,7 @@ public class CrossPromotionManager : MonoBehaviour
     {
         //You Have To Change the Server link 
         //UnityWebRequest request = UnityWebRequest.Get("Enter Your github link");
-        UnityWebRequest request = UnityWebRequest.Get("https://raw.githubusercontent.com/alinawaz1997/crosspromotion/main/amazonjson/DressUpFashionShowMakeoverGamesFashionStylist.json");
+        UnityWebRequest request = UnityWebRequest.Get("https://raw.githubusercontent.com/alinawaz1997/crosspromotion/main/CMGjson/DressUpFashionShowGames.json");
         yield return request.SendWebRequest();
         if (request.isDone && request.result == UnityWebRequest.Result.Success)
         {
@@ -77,7 +77,7 @@ public class CrossPromotionManager : MonoBehaviour
                         {
                             iconName = GamesInfo.Instance.gamesData[i].appName;
                             //serverPath = "Enter Your github link" + iconName + ".png";
-                            serverPath = "https://raw.githubusercontent.com/alinawaz1997/crosspromotion/main/amazonicons/" + iconName + ".png";
+                            serverPath = "https://raw.githubusercontent.com/alinawaz1997/crosspromotion/main/CMGicon/" + iconName + ".png";
                             StartCoroutine(GetTexture(i));
                         }
                     }

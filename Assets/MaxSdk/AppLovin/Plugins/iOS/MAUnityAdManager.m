@@ -5,7 +5,7 @@
 
 #import "MAUnityAdManager.h"
 
-#define VERSION @"6.1.2"
+#define VERSION @"5.11.1"
 
 #define KEY_WINDOW [UIApplication sharedApplication].keyWindow
 #define DEVICE_SPECIFIC_ADVIEW_AD_FORMAT ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) ? MAAdFormat.leader : MAAdFormat.banner
@@ -42,7 +42,7 @@ extern "C" {
 }
 #endif
 
-@interface MAUnityAdManager()<MAAdDelegate, MAAdViewAdDelegate, MARewardedAdDelegate, MAAdRevenueDelegate, MAAdReviewDelegate>
+@interface MAUnityAdManager()<MAAdDelegate, MAAdViewAdDelegate, MARewardedAdDelegate, MAAdRevenueDelegate, MAAdReviewDelegate, ALVariableServiceDelegate>
 
 // Parent Fields
 @property (nonatomic, weak) ALSdk *sdk;
@@ -184,6 +184,7 @@ static ALUnityBackgroundCallback backgroundCallback;
         self.sdk = [ALSdk sharedWithSettings: settings];
     }
     
+    self.sdk.variableService.delegate = self;
     [self.sdk setPluginVersion: [@"Max-Unity-" stringByAppendingString: VERSION]];
     self.sdk.mediationProvider = @"max";
     [self.sdk initializeSdkWithCompletionHandler:^(ALSdkConfiguration *configuration)
@@ -191,11 +192,9 @@ static ALUnityBackgroundCallback backgroundCallback;
         // Note: internal state should be updated first
         completionHandler( configuration );
         
-        NSString *consentFlowUserGeographyStr = @(configuration.consentFlowUserGeography).stringValue;
         NSString *consentDialogStateStr = @(configuration.consentDialogState).stringValue;
         NSString *appTrackingStatus = @(configuration.appTrackingTransparencyStatus).stringValue; // Deliberately name it `appTrackingStatus` to be a bit more generic (in case Android introduces a similar concept)
         [MAUnityAdManager forwardUnityEventWithArgs: @{@"name" : @"OnSdkInitializedEvent",
-                                                       @"consentFlowUserGeography" : consentFlowUserGeographyStr,
                                                        @"consentDialogState" : consentDialogStateStr,
                                                        @"countryCode" : configuration.countryCode,
                                                        @"appTrackingStatus" : appTrackingStatus,
@@ -208,93 +207,87 @@ static ALUnityBackgroundCallback backgroundCallback;
 
 #pragma mark - Banners
 
-- (void)createBannerWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier atPosition:(nullable NSString *)bannerPosition
+- (void)createBannerWithAdUnitIdentifier:(NSString *)adUnitIdentifier atPosition:(NSString *)bannerPosition
 {
     [self createAdViewWithAdUnitIdentifier: adUnitIdentifier adFormat: [self adViewAdFormatForAdUnitIdentifier: adUnitIdentifier] atPosition: bannerPosition withOffset: CGPointZero];
 }
 
-- (void)createBannerWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier x:(CGFloat)xOffset y:(CGFloat)yOffset
+- (void)createBannerWithAdUnitIdentifier:(NSString *)adUnitIdentifier x:(CGFloat)xOffset y:(CGFloat)yOffset
 {
     [self createAdViewWithAdUnitIdentifier: adUnitIdentifier adFormat: [self adViewAdFormatForAdUnitIdentifier: adUnitIdentifier] atPosition: DEFAULT_AD_VIEW_POSITION withOffset: CGPointMake(xOffset, yOffset)];
 }
 
-- (void)loadBannerWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier 
+- (void)loadBannerWithAdUnitIdentifier:(NSString *)adUnitIdentifier 
 {
     [self loadAdViewWithAdUnitIdentifier: adUnitIdentifier adFormat: [self adViewAdFormatForAdUnitIdentifier: adUnitIdentifier]];
 }
 
-- (void)setBannerBackgroundColorForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier hexColorCode:(nullable NSString *)hexColorCode
+- (void)setBannerBackgroundColorForAdUnitIdentifier:(NSString *)adUnitIdentifier hexColorCode:(NSString *)hexColorCode
 {
     [self setAdViewBackgroundColorForAdUnitIdentifier: adUnitIdentifier adFormat: [self adViewAdFormatForAdUnitIdentifier: adUnitIdentifier] hexColorCode: hexColorCode];
 }
 
-- (void)setBannerPlacement:(nullable NSString *)placement forAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)setBannerPlacement:(nullable NSString *)placement forAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self setAdViewPlacement: placement forAdUnitIdentifier: adUnitIdentifier adFormat: [self adViewAdFormatForAdUnitIdentifier: adUnitIdentifier]];
 }
 
-- (void)startBannerAutoRefreshForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)startBannerAutoRefreshForAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self startAdViewAutoRefreshForAdUnitIdentifier: adUnitIdentifier adFormat: [self adViewAdFormatForAdUnitIdentifier: adUnitIdentifier]];
 }
 
-- (void)stopBannerAutoRefreshForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)stopBannerAutoRefreshForAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self stopAdViewAutoRefreshForAdUnitIdentifier: adUnitIdentifier adFormat: [self adViewAdFormatForAdUnitIdentifier: adUnitIdentifier]];
 }
 
-- (void)setBannerWidth:(CGFloat)width forAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)setBannerWidth:(CGFloat)width forAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self setAdViewWidth: width forAdUnitIdentifier: adUnitIdentifier adFormat: [self adViewAdFormatForAdUnitIdentifier: adUnitIdentifier]];
 }
 
-- (void)updateBannerPosition:(nullable NSString *)bannerPosition forAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)updateBannerPosition:(NSString *)bannerPosition forAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self updateAdViewPosition: bannerPosition withOffset: CGPointZero forAdUnitIdentifier: adUnitIdentifier adFormat: [self adViewAdFormatForAdUnitIdentifier: adUnitIdentifier]];
 }
 
-- (void)updateBannerPosition:(CGFloat)xOffset y:(CGFloat)yOffset forAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)updateBannerPosition:(CGFloat)xOffset y:(CGFloat)yOffset forAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self updateAdViewPosition: DEFAULT_AD_VIEW_POSITION withOffset: CGPointMake(xOffset, yOffset) forAdUnitIdentifier: adUnitIdentifier adFormat: [self adViewAdFormatForAdUnitIdentifier: adUnitIdentifier]];
 }
 
-- (void)setBannerExtraParameterForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier key:(nullable NSString *)key value:(nullable NSString *)value
+- (void)setBannerExtraParameterForAdUnitIdentifier:(NSString *)adUnitIdentifier key:(NSString *)key value:(nullable NSString *)value
 {
     [self setAdViewExtraParameterForAdUnitIdentifier: adUnitIdentifier adFormat: [self adViewAdFormatForAdUnitIdentifier: adUnitIdentifier] key: key value: value];
 }
 
-- (void)setBannerLocalExtraParameterForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier key:(nullable NSString *)key value:(nullable id)value
+- (void)setBannerLocalExtraParameterForAdUnitIdentifier:(NSString *)adUnitIdentifier key:(NSString *)key value:(nullable id)value
 {
-    if ( !key )
-    {
-        [self log: @"Failed to set local extra parameter: No key specified"];
-        return;
-    }
-    
     [self setAdViewLocalExtraParameterForAdUnitIdentifier: adUnitIdentifier adFormat: [self adViewAdFormatForAdUnitIdentifier: adUnitIdentifier] key: key value: value];
 }
 
-- (void)setBannerCustomData:(nullable NSString *)customData forAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)setBannerCustomData:(nullable NSString *)customData forAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self setAdViewCustomData: customData forAdUnitIdentifier: adUnitIdentifier adFormat: [self adViewAdFormatForAdUnitIdentifier: adUnitIdentifier]];
 }
 
-- (void)showBannerWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)showBannerWithAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self showAdViewWithAdUnitIdentifier: adUnitIdentifier adFormat: [self adViewAdFormatForAdUnitIdentifier: adUnitIdentifier]];
 }
 
-- (void)hideBannerWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)hideBannerWithAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self hideAdViewWithAdUnitIdentifier: adUnitIdentifier adFormat: [self adViewAdFormatForAdUnitIdentifier: adUnitIdentifier]];
 }
 
-- (NSString *)bannerLayoutForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (NSString *)bannerLayoutForAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     return [self adViewLayoutForAdUnitIdentifier: adUnitIdentifier adFormat: [self adViewAdFormatForAdUnitIdentifier: adUnitIdentifier]];
 }
 
-- (void)destroyBannerWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)destroyBannerWithAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self destroyAdViewWithAdUnitIdentifier: adUnitIdentifier adFormat: [self adViewAdFormatForAdUnitIdentifier: adUnitIdentifier]];
 }
@@ -306,90 +299,84 @@ static ALUnityBackgroundCallback backgroundCallback;
 
 #pragma mark - MRECs
 
-- (void)createMRecWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier atPosition:(nullable NSString *)mrecPosition
+- (void)createMRecWithAdUnitIdentifier:(NSString *)adUnitIdentifier atPosition:(NSString *)mrecPosition
 {
     [self createAdViewWithAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.mrec atPosition: mrecPosition withOffset: CGPointZero];
 }
 
-- (void)createMRecWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier x:(CGFloat)xOffset y:(CGFloat)yOffset
+- (void)createMRecWithAdUnitIdentifier:(NSString *)adUnitIdentifier x:(CGFloat)xOffset y:(CGFloat)yOffset
 {
     [self createAdViewWithAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.mrec atPosition: DEFAULT_AD_VIEW_POSITION withOffset: CGPointMake(xOffset, yOffset)];
 }
 
-- (void)loadMRecWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)loadMRecWithAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self loadAdViewWithAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.mrec];
 }
 
-- (void)setMRecPlacement:(nullable NSString *)placement forAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)setMRecPlacement:(nullable NSString *)placement forAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self setAdViewPlacement: placement forAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.mrec];
 }
 
-- (void)startMRecAutoRefreshForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)startMRecAutoRefreshForAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self startAdViewAutoRefreshForAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.mrec];
 }
 
-- (void)stopMRecAutoRefreshForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)stopMRecAutoRefreshForAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self stopAdViewAutoRefreshForAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.mrec];
 }
 
-- (void)updateMRecPosition:(nullable NSString *)mrecPosition forAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)updateMRecPosition:(NSString *)mrecPosition forAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self updateAdViewPosition: mrecPosition withOffset: CGPointZero forAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.mrec];
 }
 
-- (void)updateMRecPosition:(CGFloat)xOffset y:(CGFloat)yOffset forAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)updateMRecPosition:(CGFloat)xOffset y:(CGFloat)yOffset forAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self updateAdViewPosition: DEFAULT_AD_VIEW_POSITION withOffset: CGPointMake(xOffset, yOffset) forAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.mrec];
 }
 
-- (void)setMRecExtraParameterForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier key:(nullable NSString *)key value:(nullable NSString *)value
+- (void)setMRecExtraParameterForAdUnitIdentifier:(NSString *)adUnitIdentifier key:(NSString *)key value:(nullable NSString *)value
 {
     [self setAdViewExtraParameterForAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.mrec key: key value: value];
 }
 
-- (void)setMRecLocalExtraParameterForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier key:(nullable NSString *)key value:(nullable id)value
+- (void)setMRecLocalExtraParameterForAdUnitIdentifier:(NSString *)adUnitIdentifier key:(NSString *)key value:(nullable id)value
 {
-    if ( !key )
-    {
-        [self log: @"Failed to set local extra parameter: No key specified"];
-        return;
-    }
-    
     [self setAdViewLocalExtraParameterForAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.mrec key: key value: value];
 }
 
-- (void)setMRecCustomData:(nullable NSString *)customData forAdUnitIdentifier:(nullable NSString *)adUnitIdentifier;
+- (void)setMRecCustomData:(nullable NSString *)customData forAdUnitIdentifier:(NSString *)adUnitIdentifier;
 {
     [self setAdViewCustomData: customData forAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.mrec];
 }
 
-- (void)showMRecWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)showMRecWithAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self showAdViewWithAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.mrec];
 }
 
-- (void)destroyMRecWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)destroyMRecWithAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self destroyAdViewWithAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.mrec];
 }
 
-- (void)hideMRecWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)hideMRecWithAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self hideAdViewWithAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.mrec];
 }
 
-- (NSString *)mrecLayoutForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (NSString *)mrecLayoutForAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     return [self adViewLayoutForAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.mrec];
 }
 
 #pragma mark - Cross Promo Ads
 
-- (void)createCrossPromoAdWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier x:(CGFloat)xOffset y:(CGFloat)yOffset width:(CGFloat)width height:(CGFloat)height rotation:(CGFloat)rotation
+- (void)createCrossPromoAdWithAdUnitIdentifier:(NSString *)adUnitIdentifier x:(CGFloat)xOffset y:(CGFloat)yOffset width:(CGFloat)width height:(CGFloat)height rotation:(CGFloat)rotation
 {
     self.adViewWidths[adUnitIdentifier] = @(width);
     self.crossPromoAdViewHeights[adUnitIdentifier] = @(height);
@@ -397,12 +384,12 @@ static ALUnityBackgroundCallback backgroundCallback;
     [self createAdViewWithAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.crossPromo atPosition: DEFAULT_AD_VIEW_POSITION withOffset: CGPointMake(xOffset, yOffset)];
 }
 
-- (void)setCrossPromoAdPlacement:(nullable NSString *)placement forAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)setCrossPromoAdPlacement:(nullable NSString *)placement forAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self setAdViewPlacement: placement forAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.crossPromo];
 }
 
-- (void)updateCrossPromoAdPositionForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier x:(CGFloat)xOffset y:(CGFloat)yOffset width:(CGFloat)width height:(CGFloat)height rotation:(CGFloat)rotation
+- (void)updateCrossPromoAdPositionForAdUnitIdentifier:(NSString *)adUnitIdentifier x:(CGFloat)xOffset y:(CGFloat)yOffset width:(CGFloat)width height:(CGFloat)height rotation:(CGFloat)rotation
 {
     self.adViewWidths[adUnitIdentifier] = @(width);
     self.crossPromoAdViewHeights[adUnitIdentifier] = @(height);
@@ -410,181 +397,157 @@ static ALUnityBackgroundCallback backgroundCallback;
     [self updateAdViewPosition: DEFAULT_AD_VIEW_POSITION withOffset: CGPointMake(xOffset, yOffset) forAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.crossPromo];
 }
 
-- (void)showCrossPromoAdWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)showCrossPromoAdWithAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self showAdViewWithAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.crossPromo];
 }
 
-- (void)destroyCrossPromoAdWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)destroyCrossPromoAdWithAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self destroyAdViewWithAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.crossPromo];
 }
 
-- (void)hideCrossPromoAdWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)hideCrossPromoAdWithAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     [self hideAdViewWithAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.crossPromo];
 }
 
-- (NSString *)crossPromoAdLayoutForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (NSString *)crossPromoAdLayoutForAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     return [self adViewLayoutForAdUnitIdentifier: adUnitIdentifier adFormat: MAAdFormat.crossPromo];
 }
 
 #pragma mark - Interstitials
 
-- (void)loadInterstitialWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)loadInterstitialWithAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     MAInterstitialAd *interstitial = [self retrieveInterstitialForAdUnitIdentifier: adUnitIdentifier];
     [interstitial loadAd];
 }
 
-- (BOOL)isInterstitialReadyWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (BOOL)isInterstitialReadyWithAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     MAInterstitialAd *interstitial = [self retrieveInterstitialForAdUnitIdentifier: adUnitIdentifier];
     return [interstitial isReady];
 }
 
-- (void)showInterstitialWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier placement:(nullable NSString *)placement customData:(nullable NSString *)customData
+- (void)showInterstitialWithAdUnitIdentifier:(NSString *)adUnitIdentifier placement:(nullable NSString *)placement customData:(nullable NSString *)customData
 {
     MAInterstitialAd *interstitial = [self retrieveInterstitialForAdUnitIdentifier: adUnitIdentifier];
     [interstitial showAdForPlacement: placement customData: customData];
 }
 
-- (void)setInterstitialExtraParameterForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier key:(nullable NSString *)key value:(nullable NSString *)value
+- (void)setInterstitialExtraParameterForAdUnitIdentifier:(NSString *)adUnitIdentifier key:(NSString *)key value:(nullable NSString *)value
 {
     MAInterstitialAd *interstitial = [self retrieveInterstitialForAdUnitIdentifier: adUnitIdentifier];
     [interstitial setExtraParameterForKey: key value: value];
 }
 
-- (void)setInterstitialLocalExtraParameterForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier key:(nullable NSString *)key value:(nullable id)value
+- (void)setInterstitialLocalExtraParameterForAdUnitIdentifier:(NSString *)adUnitIdentifier key:(NSString *)key value:(nullable id)value
 {
-    if ( !key )
-    {
-        [self log: @"Failed to set local extra parameter: No key specified"];
-        return;
-    }
-    
     MAInterstitialAd *interstitial = [self retrieveInterstitialForAdUnitIdentifier: adUnitIdentifier];
     [interstitial setLocalExtraParameterForKey: key value: value];
 }
 
 #pragma mark - App Open Ads
 
-- (void)loadAppOpenAdWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)loadAppOpenAdWithAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     MAAppOpenAd *appOpenAd = [self retrieveAppOpenAdForAdUnitIdentifier: adUnitIdentifier];
     [appOpenAd loadAd];
 }
 
-- (BOOL)isAppOpenAdReadyWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (BOOL)isAppOpenAdReadyWithAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     MAAppOpenAd *appOpenAd = [self retrieveAppOpenAdForAdUnitIdentifier: adUnitIdentifier];
     return [appOpenAd isReady];
 }
 
-- (void)showAppOpenAdWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier placement:(nullable NSString *)placement customData:(nullable NSString *)customData
+- (void)showAppOpenAdWithAdUnitIdentifier:(NSString *)adUnitIdentifier placement:(nullable NSString *)placement customData:(nullable NSString *)customData
 {
     MAAppOpenAd *appOpenAd = [self retrieveAppOpenAdForAdUnitIdentifier: adUnitIdentifier];
     [appOpenAd showAdForPlacement: placement customData: customData];
 }
 
-- (void)setAppOpenAdExtraParameterForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier key:(nullable NSString *)key value:(nullable NSString *)value
+- (void)setAppOpenAdExtraParameterForAdUnitIdentifier:(NSString *)adUnitIdentifier key:(NSString *)key value:(nullable NSString *)value
 {
     MAAppOpenAd *appOpenAd = [self retrieveAppOpenAdForAdUnitIdentifier: adUnitIdentifier];
     [appOpenAd setExtraParameterForKey: key value: value];
 }
 
-- (void)setAppOpenAdLocalExtraParameterForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier key:(nullable NSString *)key value:(nullable id)value
+- (void)setAppOpenAdLocalExtraParameterForAdUnitIdentifier:(NSString *)adUnitIdentifier key:(NSString *)key value:(nullable id)value
 {
-    if ( !key )
-    {
-        [self log: @"Failed to set local extra parameter: No key specified"];
-        return;
-    }
-    
     MAAppOpenAd *appOpenAd = [self retrieveAppOpenAdForAdUnitIdentifier: adUnitIdentifier];
     [appOpenAd setLocalExtraParameterForKey: key value: value];
 }
 
 #pragma mark - Rewarded
 
-- (void)loadRewardedAdWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)loadRewardedAdWithAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     MARewardedAd *rewardedAd = [self retrieveRewardedAdForAdUnitIdentifier: adUnitIdentifier];
     [rewardedAd loadAd];
 }
 
-- (BOOL)isRewardedAdReadyWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (BOOL)isRewardedAdReadyWithAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     MARewardedAd *rewardedAd = [self retrieveRewardedAdForAdUnitIdentifier: adUnitIdentifier];
     return [rewardedAd isReady];
 }
 
-- (void)showRewardedAdWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier placement:(nullable NSString *)placement customData:(nullable NSString *)customData
+- (void)showRewardedAdWithAdUnitIdentifier:(NSString *)adUnitIdentifier placement:(nullable NSString *)placement customData:(nullable NSString *)customData
 {
     MARewardedAd *rewardedAd = [self retrieveRewardedAdForAdUnitIdentifier: adUnitIdentifier];
     [rewardedAd showAdForPlacement: placement customData: customData];
 }
 
-- (void)setRewardedAdExtraParameterForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier key:(nullable NSString *)key value:(nullable NSString *)value
+- (void)setRewardedAdExtraParameterForAdUnitIdentifier:(NSString *)adUnitIdentifier key:(NSString *)key value:(nullable NSString *)value
 {
     MARewardedAd *rewardedAd = [self retrieveRewardedAdForAdUnitIdentifier: adUnitIdentifier];
     [rewardedAd setExtraParameterForKey: key value: value];
 }
 
-- (void)setRewardedAdLocalExtraParameterForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier key:(nullable NSString *)key value:(nullable id)value;
+- (void)setRewardedAdLocalExtraParameterForAdUnitIdentifier:(NSString *)adUnitIdentifier key:(NSString *)key value:(nullable id)value;
 {
-    if ( !key )
-    {
-        [self log: @"Failed to set local extra parameter: No key specified"];
-        return;
-    }
-    
     MARewardedAd *rewardedAd = [self retrieveRewardedAdForAdUnitIdentifier: adUnitIdentifier];
     [rewardedAd setLocalExtraParameterForKey: key value: value];
 }
 
 #pragma mark - Rewarded Interstitials
 
-- (void)loadRewardedInterstitialAdWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (void)loadRewardedInterstitialAdWithAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     MARewardedInterstitialAd *rewardedInterstitialAd = [self retrieveRewardedInterstitialAdForAdUnitIdentifier: adUnitIdentifier];
     [rewardedInterstitialAd loadAd];
 }
 
-- (BOOL)isRewardedInterstitialAdReadyWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (BOOL)isRewardedInterstitialAdReadyWithAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
     MARewardedInterstitialAd *rewardedInterstitialAd = [self retrieveRewardedInterstitialAdForAdUnitIdentifier: adUnitIdentifier];
     return [rewardedInterstitialAd isReady];
 }
 
-- (void)showRewardedInterstitialAdWithAdUnitIdentifier:(nullable NSString *)adUnitIdentifier placement:(nullable NSString *)placement customData:(nullable NSString *)customData
+- (void)showRewardedInterstitialAdWithAdUnitIdentifier:(NSString *)adUnitIdentifier placement:(nullable NSString *)placement customData:(nullable NSString *)customData
 {
     MARewardedInterstitialAd *rewardedInterstitialAd = [self retrieveRewardedInterstitialAdForAdUnitIdentifier: adUnitIdentifier];
     [rewardedInterstitialAd showAdForPlacement: placement customData: customData];
 }
 
-- (void)setRewardedInterstitialAdExtraParameterForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier key:(nullable NSString *)key value:(nullable NSString *)value
+- (void)setRewardedInterstitialAdExtraParameterForAdUnitIdentifier:(NSString *)adUnitIdentifier key:(NSString *)key value:(nullable NSString *)value
 {
     MARewardedInterstitialAd *rewardedInterstitialAd = [self retrieveRewardedInterstitialAdForAdUnitIdentifier: adUnitIdentifier];
     [rewardedInterstitialAd setExtraParameterForKey: key value: value];
 }
 
-- (void)setRewardedInterstitialAdLocalExtraParameterForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier key:(nullable NSString *)key value:(nullable id)value
+- (void)setRewardedInterstitialAdLocalExtraParameterForAdUnitIdentifier:(NSString *)adUnitIdentifier key:(NSString *)key value:(nullable id)value
 {
-    if ( !key )
-    {
-        [self log: @"Failed to set local extra parameter: No key specified"];
-        return;
-    }
-    
     MARewardedInterstitialAd *rewardedInterstitialAd = [self retrieveRewardedInterstitialAdForAdUnitIdentifier: adUnitIdentifier];
     [rewardedInterstitialAd setLocalExtraParameterForKey: key value: value];
 }
 
 #pragma mark - Event Tracking
 
-- (void)trackEvent:(nullable NSString *)event parameters:(nullable NSString *)parameters
+- (void)trackEvent:(NSString *)event parameters:(NSString *)parameters
 {
     NSDictionary<NSString *, id> *deserializedParameters = [MAUnityAdManager deserializeParameters: parameters];
     [self.sdk.eventService trackEvent: event parameters: deserializedParameters];
@@ -592,9 +555,9 @@ static ALUnityBackgroundCallback backgroundCallback;
 
 #pragma mark - Ad Info
 
-- (NSString *)adInfoForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier
+- (NSString *)adInfoForAdUnitIdentifier:(NSString *)adUnitIdentifier
 {
-    if ( [adUnitIdentifier al_isValidString] ) return @"";
+    if ( adUnitIdentifier.length == 0 ) return @"";
     
     MAAd *ad = [self adWithAdUnitIdentifier: adUnitIdentifier];
     if ( !ad ) return @"";
@@ -681,10 +644,9 @@ static ALUnityBackgroundCallback backgroundCallback;
 
 #pragma mark - Ad Value
 
-- (NSString *)adValueForAdUnitIdentifier:(nullable NSString *)adUnitIdentifier withKey:(nullable NSString *)key
+- (NSString *)adValueForAdUnitIdentifier:(NSString *)adUnitIdentifier withKey:(NSString *)key
 {
-    if ( adUnitIdentifier == nil || adUnitIdentifier.length == 0 ) return @"";
-    if ( key == nil || key.length == 0 ) return @"";
+    if ( adUnitIdentifier.length == 0 ) return @"";
     
     MAAd *ad = [self adWithAdUnitIdentifier: adUnitIdentifier];
     if ( !ad ) return @"";
@@ -1157,21 +1119,16 @@ static ALUnityBackgroundCallback backgroundCallback;
         self.adViewAdFormats[adUnitIdentifier] = adFormat;
         [self positionAdViewForAdUnitIdentifier: adUnitIdentifier adFormat: adFormat];
         
-        NSDictionary<NSString *, NSString *> *extraParameters = self.adViewExtraParametersToSetAfterCreate[adUnitIdentifier];
-        
-        // Enable adaptive banners by default for banners and leaders.
-        if ( [adFormat isBannerOrLeaderAd] )
+        // Enable adaptive banners by default.
+        if ( ( self.adViewExtraParametersToSetAfterCreate[@"adaptive_banner"] != nil ) && ( adFormat == MAAdFormat.banner || adFormat == MAAdFormat.leader ) )
         {
-            // Check if there is already a pending setting for adaptive banners. If not, enable them.
-            if ( !extraParameters[@"adaptive_banner"] )
-            {
-                [adView setExtraParameterForKey: @"adaptive_banner" value: @"true"];
-            }
+            [adView setExtraParameterForKey: @"adaptive_banner" value: @"true"];
         }
         
         // Handle initial extra parameters if publisher sets it before creating ad view
-        if ( extraParameters )
+        if ( self.adViewExtraParametersToSetAfterCreate[adUnitIdentifier] )
         {
+            NSDictionary<NSString *, NSString *> *extraParameters = self.adViewExtraParametersToSetAfterCreate[adUnitIdentifier];
             for ( NSString *key in extraParameters )
             {
                 [adView setExtraParameterForKey: key value: extraParameters[key]];
@@ -1229,7 +1186,7 @@ static ALUnityBackgroundCallback backgroundCallback;
         MAAdView *adView = [self retrieveAdViewForAdUnitIdentifier: adUnitIdentifier adFormat: adFormat];
         if ( !adView )
         {
-            [self log: @"%@ does not exist for ad unit identifier \"%@\".", adFormat.label, adUnitIdentifier];
+            [self log: @"%@ does not exist for ad unit identifier %@.", adFormat.label, adUnitIdentifier];
             return;
         }
         
@@ -1318,17 +1275,13 @@ static ALUnityBackgroundCallback backgroundCallback;
     max_unity_dispatch_on_main_thread(^{
         [self log: @"Setting width %f for \"%@\" with ad unit identifier \"%@\"", width, adFormat, adUnitIdentifier];
         
-        BOOL isBannerOrLeader = adFormat.isBannerOrLeaderAd;
-        
-        // Banners and leaders need to be at least 320pts wide.
-        CGFloat minWidth = isBannerOrLeader ? MAAdFormat.banner.size.width : adFormat.size.width;
+        CGFloat minWidth = adFormat.size.width;
         if ( width < minWidth )
         {
-            [self log: @"The provided width: %f is smaller than the minimum required width: %f for ad format: %@. Automatically setting width to %f.", width, minWidth, adFormat, minWidth];
+            [self log: @"The provided with: %f is smaller than the minimum required width: %f for ad format: %@. Please set the width higher than the minimum required.", width, minWidth, adFormat];
         }
         
-        CGFloat widthToSet = MAX( minWidth, width );
-        self.adViewWidths[adUnitIdentifier] = @(widthToSet);
+        self.adViewWidths[adUnitIdentifier] = @(width);
         [self positionAdViewForAdUnitIdentifier: adUnitIdentifier adFormat: adFormat];
     });
 }
@@ -1354,7 +1307,7 @@ static ALUnityBackgroundCallback backgroundCallback;
         }
         else
         {
-            [self log: @"%@ does not exist for ad unit identifier \"%@\". Saving extra parameter to be set when it is created.", adFormat, adUnitIdentifier];
+            [self log: @"%@ does not exist for ad unit identifier %@. Saving extra parameter to be set when it is created.", adFormat, adUnitIdentifier];
             
             // The adView has not yet been created. Store the extra parameters, so that they can be added once the banner has been created.
             NSMutableDictionary<NSString *, NSString *> *extraParameters = self.adViewExtraParametersToSetAfterCreate[adUnitIdentifier];
@@ -1387,7 +1340,7 @@ static ALUnityBackgroundCallback backgroundCallback;
         }
         else
         {
-            [self log: @"%@ does not exist for ad unit identifier \"%@\". Saving local extra parameter to be set when it is created.", adFormat, adUnitIdentifier];
+            [self log: @"%@ does not exist for ad unit identifier %@. Saving local extra parameter to be set when it is created.", adFormat, adUnitIdentifier];
             
             // The adView has not yet been created. Store the loca extra parameters, so that they can be added once the adview has been created.
             NSMutableDictionary<NSString *, id> *localExtraParameters = self.adViewLocalExtraParametersToSetAfterCreate[adUnitIdentifier];
@@ -1745,7 +1698,15 @@ static ALUnityBackgroundCallback backgroundCallback;
         // All positions have constant height
         NSMutableArray<NSLayoutConstraint *> *constraints = [NSMutableArray arrayWithObject: [adView.heightAnchor constraintEqualToConstant: adViewSize.height]];
         
-        UILayoutGuide *layoutGuide = superview.safeAreaLayoutGuide;
+        UILayoutGuide *layoutGuide;
+        if ( @available(iOS 11.0, *) )
+        {
+            layoutGuide = superview.safeAreaLayoutGuide;
+        }
+        else
+        {
+            layoutGuide = superview.layoutMarginsGuide;
+        }
         
         if ( [adViewPosition isEqual: @"top_center"] || [adViewPosition isEqual: @"bottom_center"] )
         {
@@ -2002,7 +1963,7 @@ static ALUnityBackgroundCallback backgroundCallback;
     return [[NSString alloc] initWithData: jsonData encoding: NSUTF8StringEncoding];
 }
 
-+ (NSDictionary<NSString *, id> *)deserializeParameters:(nullable NSString *)serialized
++ (NSDictionary<NSString *, id> *)deserializeParameters:(NSString *)serialized
 {
     if ( serialized.length > 0 )
     {
@@ -2043,25 +2004,35 @@ static ALUnityBackgroundCallback backgroundCallback;
     [MAUnityAdManager forwardUnityEventWithArgs: @{@"name" : @"OnSdkConsentDialogDismissedEvent"}];
 }
 
-#pragma mark - CMP Service
+#pragma mark - Consent Flow
 
-- (void)showCMPForExistingUser
+- (void)startConsentFlow
 {
-    [self.sdk.cmpService showCMPForExistingUserWithCompletion:^(ALCMPError * _Nullable error) {
+    [self.sdk.cfService scfWithCompletionHander:^(ALCFError * _Nullable error) {
         
-        NSMutableDictionary<NSString *, id> *args = [NSMutableDictionary dictionaryWithCapacity: 2];
-        args[@"name"] = @"OnCmpCompletedEvent";
+        NSMutableDictionary<NSString *, id> *args = [NSMutableDictionary dictionaryWithCapacity: 3];
+        args[@"name"] = @"OnSdkConsentFlowCompletedEvent";
         
         if ( error )
         {
-            args[@"error"] = @{@"code": @(error.code),
-                               @"message": error.message,
-                               @"cmpCode": @(error.cmpCode),
-                               @"cmpMessage": error.cmpMessage};
+            args[@"code"] = @(error.code);
+            args[@"message"] = error.message;
         }
         
-        [MAUnityAdManager forwardUnityEventWithArgs: args forwardInBackground: YES];
+        [MAUnityAdManager forwardUnityEventWithArgs: args];
     }];
+}
+
+#pragma mark - Variable Service (Deprecated)
+
+- (void)loadVariables
+{
+    [self.sdk.variableService loadVariables];
+}
+
+- (void)variableService:(ALVariableService *)variableService didUpdateVariables:(NSDictionary<NSString *, id> *)variables
+{
+    [MAUnityAdManager forwardUnityEventWithArgs: @{@"name" : @"OnVariablesUpdatedEvent"}];
 }
 
 - (MAAd *)adWithAdUnitIdentifier:(NSString *)adUnitIdentifier
