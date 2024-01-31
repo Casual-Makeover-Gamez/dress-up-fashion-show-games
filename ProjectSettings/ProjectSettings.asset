@@ -250,15 +250,15 @@ PlayerSettings:
   AndroidTargetDevices: 0
   AndroidSplashScreenScale: 0
   androidSplashScreen: {fileID: 0}
-  AndroidKeystoreName: D:/AmazonKeyStore/Amazon_amazon@1.keystore
-  AndroidKeyaliasName: amazon
+  AndroidKeystoreName: C:/Users/dell/Downloads/CasualMakeoverGamez_cms@123/CasualMakeoverGamez_cms@123.keystore
+  AndroidKeyaliasName: asghar
   AndroidBuildApkPerCpuArchitecture: 0
   AndroidTVCompatibility: 0
   AndroidIsGame: 1
   AndroidEnableTango: 0
   androidEnableBanner: 1
   androidUseLowAccuracyLocation: 0
-  androidUseCustomKeystore: 0
+  androidUseCustomKeystore: 1
   m_AndroidBanners:
   - width: 320
     height: 180

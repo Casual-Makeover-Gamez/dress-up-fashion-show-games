@@ -246,34 +246,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 1826572841646777255, guid: 754380250c1cc8a40a56e4de8be5a40e, type: 3}
-      propertyPath: AdmobRVId
-      value: ca-app-pub-7688825064780594/4701354226
-      objectReference: {fileID: 0}
-    - target: {fileID: 1826572841646777255, guid: 754380250c1cc8a40a56e4de8be5a40e, type: 3}
-      propertyPath: AdmobAppId
-      value: ca-app-pub-7688825064780594~7411278047
-      objectReference: {fileID: 0}
-    - target: {fileID: 1826572841646777255, guid: 754380250c1cc8a40a56e4de8be5a40e, type: 3}
-      propertyPath: AdmobBannerId
-      value: ca-app-pub-7688825064780594/6551861630
-      objectReference: {fileID: 0}
-    - target: {fileID: 1826572841646777255, guid: 754380250c1cc8a40a56e4de8be5a40e, type: 3}
-      propertyPath: BannerAdUnitId
-      value: 6955a9cf9ec90e6f
-      objectReference: {fileID: 0}
-    - target: {fileID: 1826572841646777255, guid: 754380250c1cc8a40a56e4de8be5a40e, type: 3}
-      propertyPath: RewardedAdUnitId
-      value: e385c84372ecd513
-      objectReference: {fileID: 0}
-    - target: {fileID: 1826572841646777255, guid: 754380250c1cc8a40a56e4de8be5a40e, type: 3}
-      propertyPath: AdmobInterstitialID
-      value: ca-app-pub-7688825064780594/2158951361
-      objectReference: {fileID: 0}
-    - target: {fileID: 1826572841646777255, guid: 754380250c1cc8a40a56e4de8be5a40e, type: 3}
-      propertyPath: InterstitialAdUnitId
-      value: 7789e786c7e533b5
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 754380250c1cc8a40a56e4de8be5a40e, type: 3}
 --- !u!1 &519420028
